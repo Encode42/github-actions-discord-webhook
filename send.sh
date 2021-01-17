@@ -26,16 +26,16 @@ if [ $# -lt 1 ]; then echo -e "The second argument of this script must be the WE
 # Author details
 AUTHOR_NAME="$(git log -1 "$GITHUB_SHA" --pretty="%aN")"
 AUTHOR_USERNAME="$GITHUB_ACTOR"
-AUTHOR_URL="https://github.com/$AUTHOR_USERNAME"
-AUTHOR_AVATAR="https://github.com/$AUTHOR_USERNAME.png"
+AUTHOR_URL="$GITHUB_SERVER_URL/$AUTHOR_USERNAME"
+AUTHOR_AVATAR="$GITHUB_SERVER_URL/$AUTHOR_USERNAME.png"
 
 # Commit details
 COMMITTER_NAME="$(git log -1 "$GITHUB_SHA" --pretty="%cN")"
 COMMIT_SUBJECT="$(git log -1 "$GITHUB_SHA" --pretty="%s")"
-COMMIT_URL="https://github.com/$GITHUB_REPOSITORY/commit/$GITHUB_SHA"
+COMMIT_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/commit/$GITHUB_SHA"
 
 # Branch details
-REPO_URL="https://github.com/$GITHUB_REPOSITORY"
+REPO_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
 REPO_NAME="$(echo "$GITHUB_REPOSITORY" | sed 's/^[^\/]*\///')"
 BRANCH_NAME="$(echo "$GITHUB_REF" | sed 's/^[^/]*\/[^/]*\///g')"
 BRANCH_OR_PR_URL="$REPO_URL/tree/$BRANCH_NAME"
@@ -46,8 +46,8 @@ if [ "$GITHUB_EVENT_NAME" == "pull_request" ]; then
 	PR_NUM=$(sed 's/\/.*//g' <<< "$BRANCH_NAME")
 	BRANCH_OR_PR_URL="$REPO_URL/pull/$PR_NUM"
 	BRANCH_NAME="#${PR_NUM}"
-	PULL_REQUEST_ENDPOINT="https://api.github.com/repos/$GITHUB_REPOSITORY/pulls/$PR_NUM"
-	
+	PULL_REQUEST_ENDPOINT="$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/pulls/$PR_NUM"
+
 	# Check if the Ruby command is set up
 	# If not, PR title = PR number
 	if command -v ruby &> /dev/null; then
@@ -57,7 +57,7 @@ if [ "$GITHUB_EVENT_NAME" == "pull_request" ]; then
 		echo -e "Ruby command not found, PR title getting skipped..."
 		PULL_REQUEST_TITLE=$PR_NUM
 	fi
-	
+
 	COMMIT_SUBJECT=$PULL_REQUEST_TITLE
 	ACTION_URL="$BRANCH_OR_PR_URL/checks"
 fi
