@@ -24,10 +24,9 @@ shift
 if [ $# -lt 1 ]; then echo -e "The second argument of this script must be the WEBHOOK_URL environment variable. https://github.com/Encode42/discord-workflows-webhook" && exit; fi
 
 # Author details
-AUTHOR_NAME="$(git log -1 "$GITHUB_SHA" --pretty="%aN")"
-AUTHOR_USERNAME="$GITHUB_ACTOR"
-AUTHOR_URL="$GITHUB_SERVER_URL/$AUTHOR_USERNAME"
-AUTHOR_AVATAR="$GITHUB_SERVER_URL/$AUTHOR_USERNAME.png"
+AUTHOR_NAME="$GITHUB_ACTOR"
+AUTHOR_URL="$GITHUB_SERVER_URL/$AUTHOR_NAME"
+AUTHOR_AVATAR="$GITHUB_SERVER_URL/$AUTHOR_NAME.png"
 
 # Commit details
 COMMITTER_NAME="$(git log -1 "$GITHUB_SHA" --pretty="%cN")"
