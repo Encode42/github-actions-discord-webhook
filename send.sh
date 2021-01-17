@@ -3,35 +3,48 @@
 
 # Get the build status
 case ${1,,} in
-  "success" )
-    EMBED_COLOR=38912
-    STATUS_MESSAGE="passed"
-    ;;
+	"success" )
+		EMBED_COLOR=38912
+		STATUS_MESSAGE="passed"
+		;;
 
-  "failure" )
-    EMBED_COLOR=16525609
-    STATUS_MESSAGE="failed"
-    ;;
+	"failure" )
+		EMBED_COLOR=16525609
+		STATUS_MESSAGE="failed"
+		;;
 
-  * )
-    EMBED_COLOR=2105893
-    STATUS_MESSAGE="unknown"
-    ;;
+	* )
+		EMBED_COLOR=2105893
+		STATUS_MESSAGE="unknown"
+		;;
 esac
 
 # Check for the webhook argument
 shift
 if [ $# -lt 1 ]; then echo -e "The second argument of this script must be the WEBHOOK_URL environment variable. https://github.com/Encode42/discord-workflows-webhook" && exit; fi
 
-# Author details
-AUTHOR_NAME="$GITHUB_ACTOR"
-AUTHOR_URL="$GITHUB_SERVER_URL/$AUTHOR_NAME"
-AUTHOR_AVATAR="$GITHUB_SERVER_URL/$AUTHOR_NAME.png"
+# Check if Ruby is available
+if command -v ruby &> /dev/null; then
+	WORK_DIR=$(dirname "${BASH_SOURCE[0]}")
+	USE_RUBY=true
+else
+	echo -e "Ruby command not found, skipping optional tasks."
+	USE_RUBY=false
+fi
 
 # Commit details
-COMMITTER_NAME="$(git log -1 "$GITHUB_SHA" --pretty="%cN")"
+COMMITTER_NAME="$GITHUB_ACTOR"
+COMMITTER_URL="$GITHUB_SERVER_URL/$COMMITTER_NAME"
+COMMITTER_AVATAR="$GITHUB_SERVER_URL/$COMMITTER_NAME.png"
 COMMIT_SUBJECT="$(git log -1 "$GITHUB_SHA" --pretty="%s")"
 COMMIT_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/commit/$GITHUB_SHA"
+COMMIT_URL_ENDPOINT="$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA"
+
+# Author details
+AUTHOR_NAME="$(git log -1 --pretty="%aN")"
+
+# Get the author name
+if $USE_RUBY; then AUTHOR_NAME=$(ruby "$WORK_DIR"/ruby/get_author_name.rb "$COMMIT_URL_ENDPOINT"); fi
 
 # Branch details
 REPO_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
@@ -45,17 +58,11 @@ if [ "$GITHUB_EVENT_NAME" == "pull_request" ]; then
 	PR_NUM=$(sed 's/\/.*//g' <<< "$BRANCH_NAME")
 	BRANCH_OR_PR_URL="$REPO_URL/pull/$PR_NUM"
 	BRANCH_NAME="#${PR_NUM}"
+	PULL_REQUEST_TITLE=$PR_NUM
 	PULL_REQUEST_ENDPOINT="$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/pulls/$PR_NUM"
 
-	# Check if the Ruby command is set up
-	# If not, PR title = PR number
-	if command -v ruby &> /dev/null; then
-		WORK_DIR=$(dirname "${BASH_SOURCE[0]}")
-		PULL_REQUEST_TITLE=$(ruby "$WORK_DIR"/get_pull_request_title.rb "$PULL_REQUEST_ENDPOINT")
-	else
-		echo -e "Ruby command not found, PR title getting skipped..."
-		PULL_REQUEST_TITLE=$PR_NUM
-	fi
+	# Get the PR title
+	if $USE_RUBY; then PULL_REQUEST_TITLE=$(ruby "$WORK_DIR"/ruby/get_pull_request_title.rb "$PULL_REQUEST_ENDPOINT"); fi
 
 	COMMIT_SUBJECT=$PULL_REQUEST_TITLE
 	ACTION_URL="$BRANCH_OR_PR_URL/checks"
@@ -63,25 +70,25 @@ fi
 
 # Compile the webhook data
 WEBHOOK_DATA='{
-  "avatar_url": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
-  "embeds": [{
-    "color": '$EMBED_COLOR',
-    "author": {
-      "name": "'"$AUTHOR_NAME"'",
-      "icon_url": "'$AUTHOR_AVATAR'",
-      "url": "'$AUTHOR_URL'"
-    },
-    "title": "['"$REPO_NAME"':'"$BRANCH_NAME"'] Build '"$STATUS_MESSAGE"'",
-    "url": "'"$ACTION_URL"'",
-    "description": "'"[\`${GITHUB_SHA:0:7}\`](${COMMIT_URL})"' '"$COMMIT_SUBJECT"' - '"$COMMITTER_NAME"'"
-  }]
+	"avatar_url": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
+	"embeds": [{
+		"color": '$EMBED_COLOR',
+		"author": {
+			"name": "'"$COMMITTER_NAME"'",
+			"icon_url": "'$COMMITTER_AVATAR'",
+			"url": "'$COMMITTER_URL'"
+		},
+		"title": "['"$REPO_NAME"':'"$BRANCH_NAME"'] Build '"$STATUS_MESSAGE"'",
+		"url": "'"$ACTION_URL"'",
+		"description": "'"[\`${GITHUB_SHA:0:7}\`](${COMMIT_URL})"' '"$COMMIT_SUBJECT"' - '"$AUTHOR_NAME"'"
+	}]
 }'
 
 for ARG in "$@"; do
-  echo -e "[Webhook]: Compiled JSON webhook data: $WEBHOOK_DATA\\n"
+	echo -e "[Webhook]: Compiled JSON webhook data: $WEBHOOK_DATA\\n"
 
-  # Send the webhook
-  echo -e "[Webhook]: Sending webhook to Discord...\\n";
-  (curl --fail --progress-bar -A "GitHub-Actions-Webhook" -H Content-Type:application/json -H X-Author:k3rn31p4nic#8383 -d "${WEBHOOK_DATA//	/ }" "$ARG" \
-  && echo -e "\\n[Webhook]: Successfully sent the webhook.") || echo -e "\\n[Webhook]: Unable to send webhook."
+	# Send the webhook
+	echo -e "[Webhook]: Sending webhook to Discord...\\n";
+	(curl --fail --progress-bar -A "GitHub-Actions-Webhook" -H Content-Type:application/json -H X-Author:k3rn31p4nic#8383 -d "${WEBHOOK_DATA//	/ }" "$ARG" \
+	&& echo -e "\\n[Webhook]: Successfully sent the webhook.") || echo -e "\\n[Webhook]: Unable to send webhook."
 done
