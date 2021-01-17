@@ -25,8 +25,9 @@ if [ $# -lt 1 ]; then echo -e "The second argument of this script must be the WE
 
 # Author details
 AUTHOR_NAME="$(git log -1 "$GITHUB_SHA" --pretty="%aN")"
-AUTHOR_URL="https://github.com/$AUTHOR_NAME"
-AUTHOR_AVATAR="https://github.com/$AUTHOR_NAME.png"
+AUTHOR_USERNAME="$GITHUB_ACTOR"
+AUTHOR_URL="https://github.com/$AUTHOR_USERNAME"
+AUTHOR_AVATAR="https://github.com/$AUTHOR_USERNAME.png"
 
 # Commit details
 COMMITTER_NAME="$(git log -1 "$GITHUB_SHA" --pretty="%cN")"
