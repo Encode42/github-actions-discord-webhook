@@ -1,5 +1,6 @@
 #!/bin/bash
-# This original source of this code: https://github.com/DiscordHooks/travis-ci-discord-webhook
+# discord-workflows-webhook | https://github.com/Encode42/discord-workflows-webhook
+# Forked from DiscordHooks/github-actions-discord-webhook
 
 # Get the build status
 case ${1,,} in
@@ -21,16 +22,14 @@ esac
 
 # Check for the webhook argument
 shift
-if [ $# -lt 1 ]; then echo "The second argument of this script must be the WEBHOOK_URL environment variable. https://github.com/Encode42/discord-workflows-webhook" && exit; fi
+if [ $# -lt 1 ]; then echo "The second argument of this script must be WEBHOOK_URL (https://github.com/Encode42/discord-workflows-webhook)" && exit; fi
 
 # Check if Ruby is available
+USE_RUBY=false
 if command -v ruby &> /dev/null; then
-	echo -e "[Runner]: Ruby is available! Utilizing author name and PR title getter.\\n"
+	echo "Ruby is available! Utilizing optional methods."
 	WORK_DIR=$(dirname "${BASH_SOURCE[0]}")
 	USE_RUBY=true
-else
-	echo -e "[Runner]: Ruby command not found, skipping optional tasks.\\n"
-	USE_RUBY=false
 fi
 
 # Commit details
@@ -43,12 +42,9 @@ COMMIT_URL_ENDPOINT="$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/commits/$GITHUB_SH
 
 # Author details
 AUTHOR_NAME="$(git log -1 --pretty="%aN")"
-
-# Get the author name
 if $USE_RUBY; then
-	echo "[Runner]: Sending request to the GitHub API for the commit author's username..."
 	AUTHOR_NAME=$(ruby "$WORK_DIR"/ruby/get_author_name.rb "$COMMIT_URL_ENDPOINT")
-	echo -e "[Runner]: Sent the request! '$AUTHOR_NAME' is the recieved commit author.\\n"
+	echo "'$AUTHOR_NAME' is the recieved commit author."
 fi
 
 # Branch details
@@ -68,9 +64,8 @@ if [ "$GITHUB_EVENT_NAME" == "pull_request" ]; then
 
 	# Get the PR title
 	if $USE_RUBY; then
-		echo "[Runner]: Sending request to the GitHub API for the PR title..."
 		PULL_REQUEST_TITLE=$(ruby "$WORK_DIR"/ruby/get_pull_request_title.rb "$PULL_REQUEST_ENDPOINT")
-		echo -e "[Runner]: Sent the request! '$PULL_REQUEST_TITLE' is the recieved pull request title.\\n"
+		echo "'$PULL_REQUEST_TITLE' is the recieved pull request title."
 	fi
 
 	COMMIT_SUBJECT=$PULL_REQUEST_TITLE
@@ -89,15 +84,13 @@ WEBHOOK_DATA='{
 		},
 		"title": "['"$REPO_NAME"':'"$BRANCH_NAME"'] Build '"$STATUS_MESSAGE"'",
 		"url": "'"$ACTION_URL"'",
-		"description": "'"[\`${GITHUB_SHA:0:7}\`](${COMMIT_URL})"' '"$COMMIT_SUBJECT"' - '"$AUTHOR_NAME"'"
+		"description": "'"[\`${GITHUB_SHA:0:7}\`](${COMMIT_URL})"' '"${COMMIT_SUBJECT//\"/\\\"}"' - '"$AUTHOR_NAME"'"
 	}]
 }'
+echo -e "\\nCompiled webhook data: $WEBHOOK_DATA"
 
+# Send the webhook
 for ARG in "$@"; do
-	echo -e "[Runner]: Compiled webhook data: $WEBHOOK_DATA\\n"
-
-	# Send the webhook
-	echo "[Webhook]: Sending webhook to Discord...";
 	(curl --fail --progress-bar -A "GitHub-Actions-Webhook" -H Content-Type:application/json -H X-Author:k3rn31p4nic#8383 -d "${WEBHOOK_DATA//	/ }" "$ARG" \
-	&& echo -e "\\n[Webhook]: Successfully sent the webhook.") || echo -e "\\n[Webhook]: Unable to send webhook."
+	&& echo -e "\\nSuccessfully sent the webhook.") || echo -e "\\nUnable to send webhook."
 done
