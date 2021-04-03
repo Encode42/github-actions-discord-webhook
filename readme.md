@@ -2,6 +2,8 @@
 **Modified to have the same style as the default GitHub webhook.**  
 This is mainly for my own personal use! There will be little to no support provided.
 
+![](https://cdn.discordapp.com/attachments/365455566329348097/827974247649247273/unknown.png)
+
 ## Setup
 1. In Github secrets, add a `WEBHOOK_URL` variable with the Discord web hook URL.
 2. Inside your workflow file, add this snippet after the build-critical task:
