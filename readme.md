@@ -15,5 +15,5 @@ This is mainly for my own personal use! There will be little to no support provi
           shell: bash
     ```
 
-    <sub>To see a working example, look at [this workflow file](https://github.com/Encode42/MatrixChecks-Plugin/blob/main/.github/workflows/run.yml).</sub>  
+    <sub>To see a working example, look at [this workflow file](https://github.com/Encode42/Packed/blob/main/.github/workflows/zip.yml).</sub>  
 3. That's all! Webhook notifications will automatically be sent on every workflow run.
